@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>US Prayer time</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+      integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
+      crossorigin="anonymous"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Kalam&family=Poppins:wght@500&family=Raleway:wght@300&family=Stick+No+Bills&display=swap"
+      rel="stylesheet"
+    />
+    <!-- <script async defer src="prayerTime.js"></script>
+        <link rel="stylesheet" href="stylePrayerTime.css"> -->
+  </head>
+  <body id="body">
+    <div id="page-form">
+      <label id="Page_header" for="name">US Prayer time</label>
+      <div class="input-group mb-5">
+        <input
+          id="user-Input-city"
+          type="text"
+          class="form-control"
+          name="name"
+          required
+          placeholder="City..."
+          onclick="Delete()"
+        />
+        <input
+          id="user-Input-State"
+          type="text"
+          class="form-control"
+          name="name"
+          required
+          placeholder="State..."
+          onclick="Delete()"
+        />
+        <div class="input-group-append">
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            id="submit-answer"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+      <label for="row-1" id="show-label-1"></label>
+      <div id="row-1" class="row">
+        <div class="col-md-5">
+          <p id="current-weekday"></p>
+        </div>
+        <div class="col-md-5">
+            <p id="current-date"></p>
+        </div>
+      </div>
+      <div id="row-2" class="row">
+        <div class="col-md-5">
+          <label for="row-1" id="show-label-2"></label>
+        </div>
+        <div class="col-md-5">
+          <p id="islamic-date"></p>
+        </div>
+      </div>
+      <table id="table-id" class="table"></table>
+    </div>
+  </body>
+</html>
+
+<script>
+  let userInputCity = document.querySelector("#user-Input-city");
+  let userInputState = document.querySelector("#user-Input-State");
+  let submitButton = document.querySelector("#submit-answer");
+  let tableElement = document.querySelector("#table-id");
+  let weekdayElement = document.querySelector("#current-weekday");
+  let currentDateElement = document.querySelector("#current-date")
+  let islamicDateElement = document.querySelector("#islamic-date");
+  let displaycurrentDate = document.querySelector("#show-label-1");
+  let displayislamicDate = document.querySelector("#show-label-2");
+
+  document.addEventListener("keyup", function () {
+    if (event.keyCode == 13) {
+      submitButton.click();
+    }
+  });
+
+  if (!submitButton > 0) {
+    console.log("Yes");
+  } else {
+    console.log("No");
+  }
+
+  prayerCall();
+
+  function prayerCall() {
+    submitButton.addEventListener("click", function () {
+      let userInput = userInputCity.value; // the city input from the user
+
+      let userState = userInputState.value;
+
+      if (userInput == 0) {
+        alert("Please type a city");
+        return;
+      }
+
+      if (userInput.length < 3) {
+        alert("input has to be more then 3 Character");
+        return;
+      }
+
+      if (userState.length >= 3) {
+        alert("Please type your state...For example, MN, CO, FL, NY etc..");
+        userInputState.value = "";
+        return;
+      }
+
+      // fix the api becuase it saying it is not working
+
+      let cityInput = userInput.replace(/ /g, "%20");
+      let url = `https://api.aladhan.com/v1/timingsByCity?city=${cityInput},${userState}&country=US&method=2`;
+
+      fetch(url)
+        .then((Response) => {
+          if (Response.status === 400) {
+            throw new Error("This city can't be found"); // display this if the user gets a 400 error
+          }
+          return Response.json(); // return it in json format
+        })
+        .then((Prayerdata) => {
+          //    console.log(Prayerdata)
+          prayerTime(Prayerdata);
+        })
+        .catch((error) => {
+          //check for any errors
+          alert(`the Api isn't responding, Please come back later when server is online. 
+  ${error} `);
+        });
+    });
+  }
+
+  function Delete() {
+    userInputCity.innerHTML = "";
+    userInputState.innerHTML = "";
+    tableElement.innerHTML = "";
+    displaycurrentDate.innerHTML = "";
+    displayislamicDate.innerHTML = "";
+    weekdayElement.innerHTML = "";
+    currentDateElement.innerHTML = ''
+
+
+    islamicDateElement.innerHTML = "";
+  }
+
+  function prayerTime(prayerData) {
+    let prayerTypeandTime = prayerData.data.timings;
+
+    let prayerType = Object.keys(prayerTypeandTime);
+    let prayerTime = Object.values(prayerTypeandTime);
+
+    let table = document.querySelector("table"); // Get the table element
+
+    // Clear existing rows from the table, except for the header row
+    while (table.rows.length > 1) {
+      table.deleteRow(1);
+    }
+    let tableHeader = table.createTHead();
+    tableHeader.className = "thead-dark";
+    let headerRow = tableHeader.insertRow();
+    let headerCell1 = headerRow.insertCell();
+    let headerCell2 = headerRow.insertCell();
+    headerCell1.innerHTML = "Prayer";
+    headerCell2.innerHTML = "Time";
+
+    headerCell1.className = "HeaderCell";
+    headerCell2.className = "HeaderCell";
+
+    for (let i = 0; i < prayerType.length; i++) {
+      let row = table.insertRow(); // Create a new row
+
+      let typeCell = row.insertCell(); // Create a new cell for the prayer type
+
+      typeCell.innerHTML = prayerType[i]; // Set the innerHTML of the cell to the prayer type
+      //   typeCell.innerHTML = removeExtras(prayerType[i]); // Set the innerHTML of the cell to the prayer type
+
+      let timeCell = row.insertCell(); // Create a new cell for the prayer time
+      timeCell.innerHTML = formatAMPM(prayerTime[i]); // Set the innerHTML of the cell to the prayer time
+
+      function formatAMPM(date) {
+        let newdate = date.split(":");
+        var hours = parseInt(newdate[0]);
+        var minutes = parseInt(newdate[1]);
+        var ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        var strTime = hours + ":" + minutes + " " + ampm;
+        return strTime;
+      }
+
+      let currentDate = prayerData.data.date.readable; // add the current date
+      currentDateElement.innerHTML = currentDate;
+
+      let weekDay = prayerData.data.date.gregorian.weekday.en;
+      weekdayElement.innerHTML = weekDay;
+
+      let islamicDate = prayerData.data.date.hijri.date;
+      islamicDateElement.innerHTML = islamicDate;
+
+      displaycurrentDate.innerHTML = "Current Date";
+      displayislamicDate.innerHTML = "Islamic Date";
+
+      userInputCity.value = "";
+      userInputState.value = "";
+    }
+  }
+</script>
+
+<style>
+  body {
+    background-color: #0b172a;
+    font-family: "Raleway", sans-serif;
+    font-size: 20px;
+    color: #333333;
+    margin: 20px auto;
+  }
+
+  #Page_header {
+    display: block;
+    font-family: "Poppins", sans-serif;
+    font-size: 30px;
+    color: #333;
+    line-height: 1.2;
+    text-align: center;
+    padding: 1px 55px 32px;
+  }
+
+  #page-form {
+    width: 390px;
+    background: rgb(255, 255, 255);
+    border-radius: 50px;
+    overflow: hidden;
+    padding: 55px 55px 55px;
+    width: 500px;
+    margin: 0 auto;
+  }
+
+  #show-label-1 {
+    font-family: "Raleway", sans-serif;
+    font-size: 20px;
+    color: #333333;
+    padding: 1px 1px 24px;
+  }
+
+  #HeaderCell {
+    background-color: red;
+    color: red;
+  }
+
+</style>
