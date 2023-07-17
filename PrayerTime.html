@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>US Prayer time</title>
+    <title>US Prayer Time</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -9,8 +9,8 @@
     />
     <link
       rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
-      integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0/css/bootstrap.min.css"
+      integrity="sha384-pzjw8f+ua7Kw1TIq0v8FqFjcJ6pajs/rfdfs3SO+kD4Ck5BdPtF+to8xM6B5z6W5"
       crossorigin="anonymous"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,250 +19,261 @@
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Kalam&family=Poppins:wght@500&family=Raleway:wght@300&family=Stick+No+Bills&display=swap"
       rel="stylesheet"
     />
-    <!-- <script async defer src="prayerTime.js"></script>
-        <link rel="stylesheet" href="stylePrayerTime.css"> -->
   </head>
-  <body id="body">
-    <div id="page-form">
-      <label id="Page_header" for="name">US Prayer time</label>
-      <div class="input-group mb-5">
+  <body class="main-body" id="main-body">
+    <div class="form-container" id="form-container">
+      <h1 class="header-label" id="header-label">US Prayer Time</h1>
+      <div class="input-group mb-5" id="input-group">
         <input
-          id="user-Input-city"
           type="text"
-          class="form-control"
-          name="name"
+          class="form-control city-input"
+          name="city"
           required
           placeholder="City..."
-          onclick="Delete()"
+          id="city-input"
         />
-        <input
-          id="user-Input-State"
-          type="text"
-          class="form-control"
-          name="name"
-          required
-          placeholder="State..."
-          onclick="Delete()"
-        />
-        <div class="input-group-append">
+        <div class="input-group-append" id="input-group-append">
           <button
-            class="btn btn-outline-secondary"
+            class="btn btn-outline-secondary submit-button"
             type="button"
-            id="submit-answer"
+            id="submit-button"
           >
             Submit
           </button>
         </div>
       </div>
-      <label for="row-1" id="show-label-1"></label>
-      <div id="row-1" class="row">
-        <div class="col-md-5">
-          <p id="current-weekday"></p>
-        </div>
-        <div class="col-md-5">
-            <p id="current-date"></p>
-        </div>
+      <div id="prayer-times"></div>
+      <div class="date-container" id="date-container">
+        <p id="weekday"></p>
+        <p id="today-date"></p>
+        <p id="current-date"></p>
+        <p id="islamic-date"></p>
       </div>
-      <div id="row-2" class="row">
-        <div class="col-md-5">
-          <label for="row-1" id="show-label-2"></label>
-        </div>
-        <div class="col-md-5">
-          <p id="islamic-date"></p>
-        </div>
-      </div>
-      <table id="table-id" class="table"></table>
+    </div>
+    <div id="prayer-data-container">
+      <div id="prayer-data"></div>
     </div>
   </body>
 </html>
 
 <script>
-  let userInputCity = document.querySelector("#user-Input-city");
-  let userInputState = document.querySelector("#user-Input-State");
-  let submitButton = document.querySelector("#submit-answer");
-  let tableElement = document.querySelector("#table-id");
-  let weekdayElement = document.querySelector("#current-weekday");
-  let currentDateElement = document.querySelector("#current-date")
-  let islamicDateElement = document.querySelector("#islamic-date");
-  let displaycurrentDate = document.querySelector("#show-label-1");
-  let displayislamicDate = document.querySelector("#show-label-2");
+  let submitButton = document.querySelector(".submit-button");
+  let cityInput = document.querySelector(".city-input");
+  let headerLabel = document.querySelector(".header-label");
+  let prayerTimes = document.querySelector("#prayer-times");
+  let prayerData = document.querySelector("#prayer-data");
 
-  document.addEventListener("keyup", function () {
-    if (event.keyCode == 13) {
-      submitButton.click();
-    }
+
+  submitButton.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    let city = cityInput.value;
+    let url = `https://dailyprayer.abdulrcs.repl.co/api/${city}`;
+
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+
+        document.getElementById("prayer-times").style.display = "block";
+        document.getElementById("prayer-data").style.display = "block";
+
+
+        headerLabel.innerHTML = `${data["city"]}`;
+
+        let todayPrayerData = data["today"];
+        let todayPrayerText = "";
+        for (prayer in todayPrayerData) {
+          let prayerTime = convertTo12HourFormat(todayPrayerData[prayer]);
+          todayPrayerText += `${prayer}: ${prayerTime}<br/>`;
+        }
+        prayerTimes.innerHTML =
+          `<h3>Today: ${data["date"]}</h3><br/>` + todayPrayerText;
+
+        let tomorrowPrayerData = data["tomorrow"];
+        let tomorrowPrayerText = "";
+        for (prayer in tomorrowPrayerData) {
+          let prayerTime = convertTo12HourFormat(tomorrowPrayerData[prayer]);
+          tomorrowPrayerText += `${prayer}: ${prayerTime}<br/>`;
+        }
+        prayerData.innerHTML = "<h3>Tomorrow:</h3><br/>" + tomorrowPrayerText;
+      })
+      .catch((error) => console.error("Error:", error));
   });
 
-  if (!submitButton > 0) {
-    console.log("Yes");
-  } else {
-    console.log("No");
-  }
+  function convertTo12HourFormat(timeStr) {
+    // Split the string into hours and minutes
+    let [hours, minutes] = timeStr.split(":");
 
-  prayerCall();
+    // Convert the hours to a number
+    hours = parseInt(hours, 10);
 
-  function prayerCall() {
-    submitButton.addEventListener("click", function () {
-      let userInput = userInputCity.value; // the city input from the user
+    // Decide if it's AM or PM
+    let period = hours >= 12 ? "PM" : "AM";
 
-      let userState = userInputState.value;
+    // Convert to 12-hour time
+    hours = hours % 12;
+    if (hours === 0) hours = 12; // 0 hours (in 24-hour time) is 12 AM
 
-      if (userInput == 0) {
-        alert("Please type a city");
-        return;
-      }
-
-      if (userInput.length < 3) {
-        alert("input has to be more then 3 Character");
-        return;
-      }
-
-      if (userState.length >= 3) {
-        alert("Please type your state...For example, MN, CO, FL, NY etc..");
-        userInputState.value = "";
-        return;
-      }
-
-      // fix the api becuase it saying it is not working
-
-      let cityInput = userInput.replace(/ /g, "%20");
-      let url = `https://api.aladhan.com/v1/timingsByCity?city=${cityInput},${userState}&country=US&method=2`;
-
-      fetch(url)
-        .then((Response) => {
-          if (Response.status === 400) {
-            throw new Error("This city can't be found"); // display this if the user gets a 400 error
-          }
-          return Response.json(); // return it in json format
-        })
-        .then((Prayerdata) => {
-          //    console.log(Prayerdata)
-          prayerTime(Prayerdata);
-        })
-        .catch((error) => {
-          //check for any errors
-          alert(`the Api isn't responding, Please come back later when server is online. 
-  ${error} `);
-        });
-    });
-  }
-
-  function Delete() {
-    userInputCity.innerHTML = "";
-    userInputState.innerHTML = "";
-    tableElement.innerHTML = "";
-    displaycurrentDate.innerHTML = "";
-    displayislamicDate.innerHTML = "";
-    weekdayElement.innerHTML = "";
-    currentDateElement.innerHTML = ''
-
-
-    islamicDateElement.innerHTML = "";
-  }
-
-  function prayerTime(prayerData) {
-    let prayerTypeandTime = prayerData.data.timings;
-
-    let prayerType = Object.keys(prayerTypeandTime);
-    let prayerTime = Object.values(prayerTypeandTime);
-
-    let table = document.querySelector("table"); // Get the table element
-
-    // Clear existing rows from the table, except for the header row
-    while (table.rows.length > 1) {
-      table.deleteRow(1);
-    }
-    let tableHeader = table.createTHead();
-    tableHeader.className = "thead-dark";
-    let headerRow = tableHeader.insertRow();
-    let headerCell1 = headerRow.insertCell();
-    let headerCell2 = headerRow.insertCell();
-    headerCell1.innerHTML = "Prayer";
-    headerCell2.innerHTML = "Time";
-
-    headerCell1.className = "HeaderCell";
-    headerCell2.className = "HeaderCell";
-
-    for (let i = 0; i < prayerType.length; i++) {
-      let row = table.insertRow(); // Create a new row
-
-      let typeCell = row.insertCell(); // Create a new cell for the prayer type
-
-      typeCell.innerHTML = prayerType[i]; // Set the innerHTML of the cell to the prayer type
-      //   typeCell.innerHTML = removeExtras(prayerType[i]); // Set the innerHTML of the cell to the prayer type
-
-      let timeCell = row.insertCell(); // Create a new cell for the prayer time
-      timeCell.innerHTML = formatAMPM(prayerTime[i]); // Set the innerHTML of the cell to the prayer time
-
-      function formatAMPM(date) {
-        let newdate = date.split(":");
-        var hours = parseInt(newdate[0]);
-        var minutes = parseInt(newdate[1]);
-        var ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        minutes = minutes < 10 ? "0" + minutes : minutes;
-        var strTime = hours + ":" + minutes + " " + ampm;
-        return strTime;
-      }
-
-      let currentDate = prayerData.data.date.readable; // add the current date
-      currentDateElement.innerHTML = currentDate;
-
-      let weekDay = prayerData.data.date.gregorian.weekday.en;
-      weekdayElement.innerHTML = weekDay;
-
-      let islamicDate = prayerData.data.date.hijri.date;
-      islamicDateElement.innerHTML = islamicDate;
-
-      displaycurrentDate.innerHTML = "Current Date";
-      displayislamicDate.innerHTML = "Islamic Date";
-
-      userInputCity.value = "";
-      userInputState.value = "";
-    }
+    return `${hours}:${minutes} ${period}`;
   }
 </script>
-
 <style>
   body {
-    background-color: #0b172a;
-    font-family: "Raleway", sans-serif;
-    font-size: 20px;
-    color: #333333;
-    margin: 20px auto;
-  }
-
-  #Page_header {
-    display: block;
-    font-family: "Poppins", sans-serif;
-    font-size: 30px;
+    background-color: #f0f3f5;
     color: #333;
-    line-height: 1.2;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .main-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media screen and (max-width: 768px) {
+    .form-container {
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    }
+
+    #prayer-times,
+    #prayer-data {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+  }
+
+  @media screen and (min-width: 769px) {
+    .main-body {
+      padding-left: 50px;
+      padding-bottom: 50px;
+      margin-top: 20px;
+      padding-right: 50px;
+    }
+
+    div#input-group {
+      max-width: 50%;
+      margin: 0 auto;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+
+    #input-group-append,
+    .input-group {
+      width: auto;
+    }
+
+    div#input-group-append {
+      padding-left: 1rem;
+    }
+
+    #prayer-times,
+    #prayer-data {
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      max-width: 50%;
+      margin: 0 auto;
+    }
+  }
+
+  .header-label {
     text-align: center;
-    padding: 1px 55px 32px;
+    color: #1a237e;
+    font-size: 2em;
+    font-weight: 500;
   }
 
-  #page-form {
-    width: 390px;
-    background: rgb(255, 255, 255);
-    border-radius: 50px;
-    overflow: hidden;
-    padding: 55px 55px 55px;
-    width: 500px;
-    margin: 0 auto;
+  .input-group {
+    margin: 10px 0;
   }
 
-  #show-label-1 {
-    font-family: "Raleway", sans-serif;
-    font-size: 20px;
-    color: #333333;
-    padding: 1px 1px 24px;
+  .city-input {
+    max-width: 100%;
+    box-shadow: 0 1px 15px #0000001a, 0 0 #0000001a;
+    transition: all 0.3s ease-in-out;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: inherit;
+    line-height: inherit;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #000;
   }
 
-  #HeaderCell {
-    background-color: red;
-    color: red;
+  .submit-button {
+    background-color: #1a237e;
+    color: white;
+    cursor: pointer;
+    max-width: 100%;
+    box-shadow: 0 1px 15px #0000001a, 0 0 #0000001a;
+    transition: all 0.3s ease-in-out;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: inherit;
+    line-height: inherit;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border-radius: 5px;
   }
 
+  .submit-button:hover {
+    background-color: #5058a7;
+    color: white;
+  }
+
+  #prayer-times,
+  #prayer-data {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  }
+
+  #prayer-times h3,
+  #prayer-data h3 {
+    color: #1a237e;
+  }
+
+  #prayer-times p,
+  #prayer-data p {
+    line-height: 1.6;
+  }
+
+  #prayer-data-container {
+    margin-top: 30px;
+  }
 </style>
